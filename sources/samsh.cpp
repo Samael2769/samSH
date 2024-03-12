@@ -64,7 +64,11 @@ int samsh::parse(std::string input) {
 int samsh::exec(const std::string& cmd) {
     pid_t pid;
     int status;
-    std::string path = findPath(cmd);
+    std::string path;
+    if (access(cmd.c_str(), F_OK) == 0) {
+        path = cmd;
+    } else
+        path = findPath(cmd);
     _lastargs[0] = path; // Replace command with full path
     char **args = vectorToCharPointerArray(_lastargs);
     char **env = vectorToCharPointerArray(_env);
