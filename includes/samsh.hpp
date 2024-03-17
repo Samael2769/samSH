@@ -18,6 +18,8 @@
 #include <cstring>
 #include "utils.hpp"
 #include <sstream>
+#include <map>
+#include <functional>
 
 class samsh {
     public:
@@ -32,12 +34,23 @@ class samsh {
         void setPath();
         std::vector<std::string> splitString(const std::string& str, char delimiter);
         std::string findPath(const std::string& cmd);
-
+        bool isBuiltin(const std::string& cmd, std::vector<std::string> args);
+        int builtinExit(std::vector<std::string> args);
+        int builtinCd(std::vector<std::string> args);
+        int builtinEnv(std::vector<std::string> args);
+        int builtinSetenv(std::vector<std::string> args);
+        int builtinUnsetenv(std::vector<std::string> args);
+        int builtinGetenv(std::vector<std::string> args);
+        int builtinEcho(std::vector<std::string> args);
+        int setenv(const std::string& name, const std::string& value, int overwrite);
+        int unsetenv(const std::string& name);
     protected:
     private:
         std::vector<std::string> _env;
         std::vector<std::string> _path;
         std::vector<std::string> _lastargs;
+        std::map<std::string, std::function<int(std::vector<std::string>)>> _builtins;
+        int _status;
 };
 
 #endif /* !SAMSH_HPP_ */

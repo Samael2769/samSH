@@ -12,5 +12,5 @@ int main()
 {
     samsh sh;
 
-    return 0;
+    return sh.run();
 }

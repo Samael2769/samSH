@@ -9,7 +9,13 @@
 
 samsh::samsh() {
     setEnv();
-    run();
+    _builtins["exit"] = std::bind(&samsh::builtinExit, this, std::placeholders::_1);
+    _builtins["cd"] = std::bind(&samsh::builtinCd, this, std::placeholders::_1);
+    _builtins["env"] = std::bind(&samsh::builtinEnv, this, std::placeholders::_1);
+    _builtins["setenv"] = std::bind(&samsh::builtinSetenv, this, std::placeholders::_1);
+    _builtins["unsetenv"] = std::bind(&samsh::builtinUnsetenv, this, std::placeholders::_1);
+    _builtins["getenv"] = std::bind(&samsh::builtinGetenv, this, std::placeholders::_1);
+    _builtins["echo"] = std::bind(&samsh::builtinEcho, this, std::placeholders::_1);
 }
 
 samsh::~samsh() {
@@ -34,7 +40,7 @@ int samsh::run() {
         }
         parse(input);
     }
-    return 0;
+    return _status;
 }
 
 std::string samsh::getEnv(std::string var) {
@@ -65,6 +71,9 @@ int samsh::exec(const std::string& cmd) {
     pid_t pid;
     int status;
     std::string path;
+    if (isBuiltin(cmd, _lastargs)) {
+        return 0;
+    }
     if (access(cmd.c_str(), F_OK) == 0) {
         path = cmd;
     } else
@@ -98,6 +107,7 @@ int samsh::exec(const std::string& cmd) {
         return -1;
     } else {
         wait(&status);
+        _status = WEXITSTATUS(status);
         freeCharPointerArray(args); // Free memory allocated for arguments
         freeCharPointerArray(env); // Free memory allocated for environment
     }
@@ -125,4 +135,119 @@ std::string samsh::findPath(const std::string& cmd) {
     return "";
 }
 
+bool samsh::isBuiltin(const std::string& cmd, std::vector<std::string> args) {
+    if (_builtins.find(cmd) != _builtins.end()) {
+        _status = _builtins[cmd](args);
+        return true;
+    }
+    return false;
+}
 
+int samsh::builtinExit(std::vector<std::string> args) {
+    if (args.size() > 1) {
+        std::cerr << "exit: Expression Syntax." << std::endl;
+        return -1;
+    }
+    exit(0);
+}
+
+int samsh::builtinCd(std::vector<std::string> args) {
+    if (args.size() > 2) {
+        std::cerr << "cd: Expression Syntax." << std::endl;
+        return -1;
+    }
+    if (args.size() == 1) {
+        chdir(getEnv("HOME").c_str());
+    } else {
+        setenv("OLDPWD", getEnv("PWD"), 1);
+        if (chdir(args[1].c_str()) == -1) {
+            std::cerr << "cd: " << args[1] << ": No such file or directory." << std::endl;
+            return -1;
+        }
+        std::string path = getcwd(nullptr, 0);
+        setenv("PWD", path, 1);
+    }
+    return 0;
+}
+
+int samsh::builtinEnv(std::vector<std::string> args) {
+    if (args.size() > 1) {
+        std::cerr << "env: Expression Syntax." << std::endl;
+        return -1;
+    }
+    printEnv();
+    return 0;
+}
+
+int samsh::builtinSetenv(std::vector<std::string> args) {
+    if (args.size() < 2 || args.size() > 3) {
+        std::cerr << "setenv: Expression Syntax." << std::endl;
+        return -1;
+    }
+    if (args.size() == 2) {
+        setenv(args[1].c_str(), "", 1);
+    } else {
+        setenv(args[1].c_str(), args[2].c_str(), 1);
+    }
+    return 0;
+}
+
+int samsh::builtinUnsetenv(std::vector<std::string> args) {
+    if (args.size() != 2) {
+        std::cerr << "unsetenv: Expression Syntax." << std::endl;
+        return -1;
+    }
+    unsetenv(args[1].c_str());
+    return 0;
+}
+
+int samsh::builtinGetenv(std::vector<std::string> args) {
+    if (args.size() != 2) {
+        std::cerr << "getenv: Expression Syntax." << std::endl;
+        return -1;
+    }
+    std::cout << getEnv(args[1]) << std::endl;
+    return 0;
+}
+
+int samsh::builtinEcho(std::vector<std::string> args) {
+    for (int i = 1; i < args.size(); i++) {
+        std::cout << args[i];
+        if (i != args.size() - 1) {
+            std::cout << " ";
+        }
+    }
+    std::cout << std::endl;
+    return 0;
+}
+
+int samsh::setenv(const std::string& name, const std::string& value, int overwrite) {
+    if (overwrite) {
+        for (int i = 0; i < _env.size(); i++) {
+            size_t pos = _env[i].find('=');
+            if (pos != std::string::npos) {
+                std::string token = _env[i].substr(0, pos);
+                if (token == name) {
+                    _env[i] = name + "=" + value;
+                    return 0;
+                }
+            }
+        }
+    }
+    _env.push_back(name + "=" + value);
+    return 0;
+}
+
+int samsh::unsetenv(const std::string& name) {
+    for (int i = 0; i < _env.size(); i++) {
+        size_t pos = _env[i].find('=');
+        if (pos != std::string::npos) {
+            std::string token = _env[i].substr(0, pos);
+            if (token == name) {
+                _env.erase(_env.begin() + i);
+                return 0;
+            }
+        }
+    }
+    return 0;
+}
