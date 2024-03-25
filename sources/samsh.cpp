@@ -16,6 +16,9 @@ samsh::samsh() {
     _builtins["unsetenv"] = std::bind(&samsh::builtinUnsetenv, this, std::placeholders::_1);
     _builtins["getenv"] = std::bind(&samsh::builtinGetenv, this, std::placeholders::_1);
     _builtins["echo"] = std::bind(&samsh::builtinEcho, this, std::placeholders::_1);
+    _status = 0;
+    STDIN = dup(STDIN_FILENO);
+    STDOUT = dup(STDOUT_FILENO);
 }
 
 samsh::~samsh() {
@@ -63,10 +66,24 @@ void samsh::setPath() {
 
 int samsh::parse(std::string input) {
     std::vector<std::string> tokens = splitString(input, ';'); // Split input string by semicolon delimiter
+    pid_t pid;
     for (const auto& token : tokens) {
         _lastargs.clear();
         _lastargs = splitString(token, ' '); // Split input string by space delimiter
-        exec(_lastargs[0]);
+        pid = fork();
+        if (pid == 0) {
+            if (handleRedirection() == -1)
+                _status = -1;
+            if (exec(_lastargs[0]) == -1)
+                _status = -1;
+            exit(_status);
+        } else if (pid < 0) {
+            std::cerr << "fork failed" << std::endl;
+            return -1;
+        } else {
+            wait(&_status);
+            _status = WEXITSTATUS(_status);
+        }
     }
     return 0;
 }
@@ -264,6 +281,131 @@ int samsh::unsetenv(const std::string& name) {
             if (token == name) {
                 _env.erase(_env.begin() + i);
                 return 0;
+            }
+        }
+    }
+    return 0;
+}
+
+int samsh::handleRedirection() {
+    for (int i = 0; i < _lastargs.size(); i++) {
+        if (_lastargs[i] == ">") {
+            if (i + 1 < _lastargs.size()) {
+                int fd = open(_lastargs[i + 1].c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                if (fd == -1) {
+                    std::cerr << "Failed to open file" << std::endl;
+                    return -1;
+                }
+                if (dup2(fd, STDOUT_FILENO) == -1) {
+                    std::cerr << "Failed to duplicate file descriptor" << std::endl;
+                    return -1;
+                }
+                close(fd);
+                _lastargs.erase(_lastargs.begin() + i, _lastargs.begin() + i + 2);
+            } else {
+                std::cerr << "Missing name for redirect." << std::endl;
+                return -1;
+            }
+        } else if (_lastargs[i] == ">>") {
+            if (i + 1 < _lastargs.size()) {
+                int fd = open(_lastargs[i + 1].c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
+                if (fd == -1) {
+                    std::cerr << "Failed to open file" << std::endl;
+                    return -1;
+                }
+                if (dup2(fd, STDOUT_FILENO) == -1) {
+                    std::cerr << "Failed to duplicate file descriptor" << std::endl;
+                    return -1;
+                }
+                close(fd);
+                _lastargs.erase(_lastargs.begin() + i, _lastargs.begin() + i + 2);
+            } else {
+                std::cerr << "Missing name for redirect." << std::endl;
+                return -1;
+            }
+        } else if (_lastargs[i] == "<") {
+            if (i + 1 < _lastargs.size()) {
+                int fd = open(_lastargs[i + 1].c_str(), O_RDONLY);
+                if (fd == -1) {
+                    std::cerr << "Failed to open file" << std::endl;
+                    return -1;
+                }
+                if (dup2(fd, STDIN_FILENO) == -1) {
+                    std::cerr << "Failed to duplicate file descriptor" << std::endl;
+                    return -1;
+                }
+                close(fd);
+                _lastargs.erase(_lastargs.begin() + i, _lastargs.begin() + i + 2);
+            } else {
+                std::cerr << "Missing name for redirect." << std::endl;
+                return -1;
+            }
+        } else if (_lastargs[i] == "2>") {
+            if (i + 1 < _lastargs.size()) {
+                int fd = open(_lastargs[i + 1].c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                if (fd == -1) {
+                    std::cerr << "Failed to open file" << std::endl;
+                    return -1;
+                }
+                if (dup2(fd, STDERR_FILENO) == -1) {
+                    std::cerr << "Failed to duplicate file descriptor" << std::endl;
+                    return -1;
+                }
+                close(fd);
+                _lastargs.erase(_lastargs.begin() + i, _lastargs.begin() + i + 2);
+            } else {
+                std::cerr << "Missing name for redirect." << std::endl;
+                return -1;
+            }
+        } else if (_lastargs[i] == "2>>") {
+            if (i + 1 < _lastargs.size()) {
+                int fd = open(_lastargs[i + 1].c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
+                if (fd == -1) {
+                    std::cerr << "Failed to open file" << std::endl;
+                    return -1;
+                }
+                if (dup2(fd, STDERR_FILENO) == -1) {
+                    std::cerr << "Failed to duplicate file descriptor" << std::endl;
+                    return -1;
+                }
+                close(fd);
+                _lastargs.erase(_lastargs.begin() + i, _lastargs.begin() + i + 2);
+            } else {
+                std::cerr << "Missing name for redirect." << std::endl;
+                return -1;
+            }
+        } else if (_lastargs[i] == "<<") {
+            if (i + 1 < _lastargs.size()) {
+                std::string delimiter = _lastargs[i + 1];
+                std::string line;
+                std::string input;
+                std::cout << ">";
+                while (std::getline(std::cin, line)) {
+                    if (line == delimiter) {
+                        break;
+                    }
+                    std::cout << ">";
+                    input += line + "\n";
+                }
+                int fd[2];
+                if (pipe(fd) == -1) {
+                    std::cerr << "Failed to create pipe" << std::endl;
+                    return -1;
+                }
+                if (write(fd[1], input.c_str(), input.size()) == -1) {
+                    std::cerr << "Failed to write to pipe" << std::endl;
+                    return -1;
+                }
+                if (dup2(fd[0], STDIN_FILENO) == -1) {
+                    std::cerr << "Failed to duplicate file descriptor" << std::endl;
+                    return -1;
+                }
+                close(fd[0]);
+                close(fd[1]);
+                _lastargs.erase(_lastargs.begin() + i, _lastargs.begin() + i + 2);
+            } else {
+                std::cerr << "Missing delimiter for here document." << std::endl;
+                return -1;
             }
         }
     }

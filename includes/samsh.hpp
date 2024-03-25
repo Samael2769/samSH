@@ -20,6 +20,8 @@
 #include <sstream>
 #include <map>
 #include <functional>
+#include <fstream>
+#include <fcntl.h>
 
 class samsh {
     public:
@@ -44,6 +46,7 @@ class samsh {
         int builtinEcho(std::vector<std::string> args);
         int setenv(const std::string& name, const std::string& value, int overwrite);
         int unsetenv(const std::string& name);
+        int handleRedirection();
     protected:
     private:
         std::vector<std::string> _env;
@@ -51,6 +54,8 @@ class samsh {
         std::vector<std::string> _lastargs;
         std::map<std::string, std::function<int(std::vector<std::string>)>> _builtins;
         int _status;
+        int STDIN;
+        int STDOUT;
 };
 
 #endif /* !SAMSH_HPP_ */
