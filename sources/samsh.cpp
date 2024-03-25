@@ -62,8 +62,12 @@ void samsh::setPath() {
 }
 
 int samsh::parse(std::string input) {
-    _lastargs = splitString(input, ' '); // Split input string by space delimiter
-    exec(_lastargs[0]);
+    std::vector<std::string> tokens = splitString(input, ';'); // Split input string by semicolon delimiter
+    for (const auto& token : tokens) {
+        _lastargs.clear();
+        _lastargs = splitString(token, ' '); // Split input string by space delimiter
+        exec(_lastargs[0]);
+    }
     return 0;
 }
 
@@ -159,13 +163,27 @@ int samsh::builtinCd(std::vector<std::string> args) {
     if (args.size() == 1) {
         chdir(getEnv("HOME").c_str());
     } else {
-        setenv("OLDPWD", getEnv("PWD"), 1);
-        if (chdir(args[1].c_str()) == -1) {
-            std::cerr << "cd: " << args[1] << ": No such file or directory." << std::endl;
-            return -1;
+        if (args[1] == "-") {
+            if (getEnv("OLDPWD").empty()) {
+                std::cerr << "cd: OLDPWD not set." << std::endl;
+                return -1;
+            }
+            if (chdir(getEnv("OLDPWD").c_str()) == -1) {
+                std::cerr << "cd: " << getEnv("OLDPWD") << ": No such file or directory." << std::endl;
+                return -1;
+            }
+            std::string path = getcwd(nullptr, 0);
+            setenv("OLDPWD", getEnv("PWD"), 1);
+            setenv("PWD", path, 1);
+        } else {
+            setenv("OLDPWD", getEnv("PWD"), 1);
+            if (chdir(args[1].c_str()) == -1) {
+                std::cerr << "cd: " << args[1] << ": No such file or directory." << std::endl;
+                return -1;
+            }
+            std::string path = getcwd(nullptr, 0);
+            setenv("PWD", path, 1);
         }
-        std::string path = getcwd(nullptr, 0);
-        setenv("PWD", path, 1);
     }
     return 0;
 }
