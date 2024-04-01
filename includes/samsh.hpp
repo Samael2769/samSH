@@ -47,6 +47,7 @@ class samsh {
         int setenv(const std::string& name, const std::string& value, int overwrite);
         int unsetenv(const std::string& name);
         int handleRedirection();
+        //int handlePipes();
     protected:
     private:
         std::vector<std::string> _env;

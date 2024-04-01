@@ -46,5 +46,5 @@ bool isBinaryFile(const std::string& filename) {
     // Check for Mach-O magic bytes
     // (Add similar check for Mach-O magic bytes if targeting macOS)
 
-    return false; // Not a binary executable
+    return true;
 }

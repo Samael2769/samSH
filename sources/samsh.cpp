@@ -67,6 +67,7 @@ void samsh::setPath() {
 int samsh::parse(std::string input) {
     std::vector<std::string> tokens = splitString(input, ';'); // Split input string by semicolon delimiter
     pid_t pid;
+
     for (const auto& token : tokens) {
         _lastargs.clear();
         _lastargs = splitString(token, ' '); // Split input string by space delimiter
@@ -144,6 +145,17 @@ std::vector<std::string> samsh::splitString(const std::string& str, char delimit
         tokens.push_back(token);
     }
     return tokens;
+}
+
+std::string joinString(const std::vector<std::string>& tokens, char delimiter, int start, int end) {
+    std::string str;
+    for (int i = start; i < end; i++) {
+        str += tokens[i];
+        if (i != end - 1) {
+            str += delimiter;
+        }
+    }
+    return str;
 }
 
 std::string samsh::findPath(const std::string& cmd) {
@@ -407,7 +419,43 @@ int samsh::handleRedirection() {
                 std::cerr << "Missing delimiter for here document." << std::endl;
                 return -1;
             }
+        } else if (_lastargs[i] == "|") {
+            int fd[2];
+            if (pipe(fd) == -1) {
+                std::cerr << "Failed to create pipe" << std::endl;
+                return -1;
+            }
+            pid_t pid = fork();
+            if (pid == 0) {
+                
+                if (dup2(fd[1], STDOUT_FILENO) == -1) {
+                    std::cerr << "Failed to duplicate file descriptor" << std::endl;
+                    exit(1);
+                }
+                close(fd[0]);
+                close(fd[1]);
+                std::vector<std::string> left(_lastargs.begin(), _lastargs.begin() + i);
+                std::vector<std::string> right(_lastargs.begin() + i + 1, _lastargs.end());
+                if ((_status = parse(joinString(left, ' ', 0, left.size()))) == -1) {
+                    std::cerr << "Failed to parse command" << std::endl;
+                    exit(1);
+                }
+                exit(_status);
+            } else if (pid < 0) {
+                std::cerr << "fork failed" << std::endl;
+                return -1;
+            } else {
+                wait(&_status);
+                if (dup2(fd[0], STDIN_FILENO) == -1) {
+                    std::cerr << "Failed to duplicate file descriptor" << std::endl;
+                    return -1;
+                }
+                close(fd[0]);
+                close(fd[1]);
+                _lastargs.erase(_lastargs.begin(), _lastargs.begin() + i + 1);
+                return _status;
+            }
         }
     }
-    return 0;
+    return _status;
 }
