@@ -71,28 +71,28 @@ int samsh::parse(std::string input) {
     for (const auto& token : tokens) {
         _lastargs.clear();
         _lastargs = splitString(token, ' '); // Split input string by space delimiter
-        pid = fork();
-        if (pid == 0) {
-            if (handleRedirection() == -1)
-                _status = -1;
-            if (exec(_lastargs[0]) == -1)
-                _status = -1;
-            exit(_status);
-        } else if (pid < 0) {
-            std::cerr << "fork failed" << std::endl;
-            return -1;
-        } else {
-            wait(&_status);
-            _status = WEXITSTATUS(_status);
+        if (_lastargs.empty()) {
+            continue;
         }
+        handlePipes();
     }
     return 0;
+}
+
+void printTable(const std::vector<std::vector<std::string>>& table) {
+    for (const auto& row : table) {
+        for (const auto& cell : row) {
+            std::cout << cell << " $ ";
+        }
+        std::cout << std::endl;
+    }
 }
 
 int samsh::exec(const std::string& cmd) {
     pid_t pid;
     int status;
     std::string path;
+
     if (isBuiltin(cmd, _lastargs)) {
         return 0;
     }
@@ -136,27 +136,6 @@ int samsh::exec(const std::string& cmd) {
     return 0;
 }
 
-// Split a string by a delimiter and return a vector of tokens
-std::vector<std::string> samsh::splitString(const std::string& str, char delimiter) {
-    std::vector<std::string> tokens;
-    std::istringstream iss(str);
-    std::string token;
-    while (std::getline(iss, token, delimiter)) {
-        tokens.push_back(token);
-    }
-    return tokens;
-}
-
-std::string joinString(const std::vector<std::string>& tokens, char delimiter, int start, int end) {
-    std::string str;
-    for (int i = start; i < end; i++) {
-        str += tokens[i];
-        if (i != end - 1) {
-            str += delimiter;
-        }
-    }
-    return str;
-}
 
 std::string samsh::findPath(const std::string& cmd) {
     for (const auto& dir : _path) {
@@ -299,7 +278,27 @@ int samsh::unsetenv(const std::string& name) {
     return 0;
 }
 
-int samsh::handleRedirection() {
+int samsh::handleRedirection(std::vector<std::string> args)
+{
+    pid_t pid;
+    int status;
+    _lastargs = args;
+    pid = fork();
+    if (pid == 0) {
+        choseRedirection();
+        exec(args[0]);
+        exit(_status);
+    } else if (pid < 0) {
+        std::cerr << "fork failed" << std::endl;
+        return -1;
+    } else {
+        wait(&status);
+        _status = WEXITSTATUS(status);
+    }
+    return 0;
+}
+
+int samsh::choseRedirection() {
     for (int i = 0; i < _lastargs.size(); i++) {
         if (_lastargs[i] == ">") {
             if (i + 1 < _lastargs.size()) {
@@ -419,43 +418,59 @@ int samsh::handleRedirection() {
                 std::cerr << "Missing delimiter for here document." << std::endl;
                 return -1;
             }
-        } else if (_lastargs[i] == "|") {
-            int fd[2];
+        }
+    }
+    return _status;
+}
+
+int samsh::handlePipes() {
+    pid_t pid;
+    int status;
+    int fd[2];
+    int prevfd = STDIN;
+    std::string cmd = joinString(_lastargs, ' ', 0, _lastargs.size());
+    std::vector<std::string> tokens = splitString(cmd, '|');
+
+    for (int i = 0; i < tokens.size(); i++) {
+        tokens[i] = trim(tokens[i]);
+        std::vector<std::string> args = splitString(tokens[i], ' ');
+        if (i < tokens.size() - 1) {
             if (pipe(fd) == -1) {
                 std::cerr << "Failed to create pipe" << std::endl;
                 return -1;
             }
-            pid_t pid = fork();
-            if (pid == 0) {
-                
+        }
+        pid = fork();
+        if (pid == 0) {
+            if (i < tokens.size() - 1) {
                 if (dup2(fd[1], STDOUT_FILENO) == -1) {
-                    std::cerr << "Failed to duplicate file descriptor" << std::endl;
-                    exit(1);
-                }
-                close(fd[0]);
-                close(fd[1]);
-                std::vector<std::string> left(_lastargs.begin(), _lastargs.begin() + i);
-                std::vector<std::string> right(_lastargs.begin() + i + 1, _lastargs.end());
-                if ((_status = parse(joinString(left, ' ', 0, left.size()))) == -1) {
-                    std::cerr << "Failed to parse command" << std::endl;
-                    exit(1);
-                }
-                exit(_status);
-            } else if (pid < 0) {
-                std::cerr << "fork failed" << std::endl;
-                return -1;
-            } else {
-                wait(&_status);
-                if (dup2(fd[0], STDIN_FILENO) == -1) {
                     std::cerr << "Failed to duplicate file descriptor" << std::endl;
                     return -1;
                 }
+            }
+            if (i > 0) {
+                if (dup2(prevfd, STDIN_FILENO) == -1) {
+                    std::cerr << "Failed to duplicate file descriptor" << std::endl;
+                    return -1;
+                }
+            }
+            if (i < tokens.size() - 1) {
                 close(fd[0]);
                 close(fd[1]);
-                _lastargs.erase(_lastargs.begin(), _lastargs.begin() + i + 1);
-                return _status;
+            }
+            handleRedirection(args);
+            exit(_status);
+        } else if (pid < 0) {
+            std::cerr << "fork failed" << std::endl;
+            return -1;
+        } else {
+            wait(&status);
+            _status = WEXITSTATUS(status);
+            if (i < tokens.size() - 1) {
+                close(fd[1]);
+                prevfd = fd[0];
             }
         }
     }
-    return _status;
+    return 0;
 }

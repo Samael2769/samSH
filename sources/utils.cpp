@@ -48,3 +48,36 @@ bool isBinaryFile(const std::string& filename) {
 
     return true;
 }
+
+// Split a string by a delimiter and return a vector of tokens
+std::vector<std::string> splitString(const std::string& str, char delimiter) {
+    std::vector<std::string> tokens;
+    std::istringstream iss(str);
+    std::string token;
+    while (std::getline(iss, token, delimiter)) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
+std::string joinString(const std::vector<std::string>& tokens, char delimiter, int start, int end) {
+    std::string str;
+    for (int i = start; i < end; i++) {
+        str += tokens[i];
+        if (i != end - 1) {
+            str += delimiter;
+        }
+    }
+    return str;
+}
+
+std::string trim(const std::string& str) {
+    std::string new_str = str;
+    while (!new_str.empty() && std::isspace(new_str.front())) {
+        new_str.erase(new_str.begin());
+    }
+    while (!new_str.empty() && std::isspace(new_str.back())) {
+        new_str.pop_back();
+    }
+    return new_str;
+}

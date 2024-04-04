@@ -34,7 +34,6 @@ class samsh {
         int parse(std::string input);
         int exec(const std::string &cmd);
         void setPath();
-        std::vector<std::string> splitString(const std::string& str, char delimiter);
         std::string findPath(const std::string& cmd);
         bool isBuiltin(const std::string& cmd, std::vector<std::string> args);
         int builtinExit(std::vector<std::string> args);
@@ -46,8 +45,9 @@ class samsh {
         int builtinEcho(std::vector<std::string> args);
         int setenv(const std::string& name, const std::string& value, int overwrite);
         int unsetenv(const std::string& name);
-        int handleRedirection();
-        //int handlePipes();
+        int handleRedirection(std::vector<std::string> args);
+        int choseRedirection();
+        int handlePipes();
     protected:
     private:
         std::vector<std::string> _env;
