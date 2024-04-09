@@ -36,7 +36,9 @@ int samsh::run() {
     while (true) {
         setPath();
         input.clear();
-        std::cout << "samsh$ ";
+        prompt p(_env);
+        p.setStatus(_status);
+        p.createPrompt("\e[0;36m[\\t]\e[0;m \e[0;32m\\u@\\h\e[0;m:\e[1;35m\\W\e[0;m->\e[1;32m\\$\e[0;m\n-> ");
         std::getline(std::cin, input);
         if (input == "exit") {
             break;

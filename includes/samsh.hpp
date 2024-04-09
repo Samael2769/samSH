@@ -23,6 +23,8 @@
 #include <fstream>
 #include <fcntl.h>
 
+#include "prompt.hpp"
+
 class samsh {
     public:
         samsh();
