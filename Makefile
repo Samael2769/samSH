@@ -14,6 +14,7 @@ LIB_DIR			=	lib/sm_libc/
 SRC_FILES		=	samsh.cpp			\
 					utils.cpp			\
 					prompt.cpp			\
+					script.cpp			\
 
 SRC_FILES_MAIN	=	main.cpp			\
 

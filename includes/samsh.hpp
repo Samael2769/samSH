@@ -24,6 +24,7 @@
 #include <fcntl.h>
 
 #include "prompt.hpp"
+#include "script.hpp"
 
 class samsh {
     public:
@@ -50,12 +51,14 @@ class samsh {
         int handleRedirection(std::vector<std::string> args);
         int choseRedirection();
         int handlePipes();
+        int scriptHandling();
     protected:
     private:
         std::vector<std::string> _env;
         std::vector<std::string> _path;
         std::vector<std::string> _lastargs;
         std::map<std::string, std::function<int(std::vector<std::string>)>> _builtins;
+        script _script;
         int _status;
         int STDIN;
         int STDOUT;

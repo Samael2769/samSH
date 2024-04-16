@@ -95,6 +95,9 @@ int samsh::exec(const std::string& cmd) {
     int status;
     std::string path;
 
+    if (scriptHandling() == 0) {
+        return 0;
+    }
     if (isBuiltin(cmd, _lastargs)) {
         return 0;
     }
@@ -474,5 +477,38 @@ int samsh::handlePipes() {
             }
         }
     }
+    return 0;
+}
+
+int samsh::scriptHandling() {
+    std::string filepath = _lastargs[0];
+    std::ifstream file(filepath);
+    
+    if (!file.is_open()) {
+        return -1;
+    }
+    
+    std::string file_ctn;
+    std::string line;
+    
+    for (int i = 0; std::getline(file, line); i++) {
+        if (i == 0) {
+            if (line.find("#!/samsh") == 0) {
+                continue;
+            } else
+                return -1;
+        }
+        file_ctn += line + "\n";
+    }
+    
+    file.close();
+    
+    if (file_ctn.empty()) {
+        return -1;
+    }
+    
+    _script.setScript(file_ctn);
+    _script.run();
+    
     return 0;
 }

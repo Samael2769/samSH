@@ -1,0 +1,10 @@
+#!/samsh
+i=2
+a=2
+b=4
+v="test"
+if (i == 1)
+    if (i == 0)
+        i=1
+    end
+end
