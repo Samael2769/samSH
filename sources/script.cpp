@@ -73,10 +73,31 @@ int script::check_variable(std::string line) {
 }
 
 int script::for_loop(std::vector<std::string> tokens) {
-    for (int i = 0; i < tokens.size(); i++) {
-        std::cout << tokens[i] << std::endl;
+    std::string statement = "";
+    //get only what inside the parenthesis
+    for (int i = 0; i < tokens[0].size(); i++) {
+        if (tokens[0][i] == '(') {
+            i++;
+            while (tokens[0][i] != ')') {
+                statement += tokens[0][i];
+                i++;
+            }
+            break;
+        }
     }
-    //TODO
+    std::vector<std::string> for_tokens;
+    for_tokens = splitString(statement, ';');
+    int start = std::stoi(for_tokens[0]);
+    int end = std::stoi(for_tokens[1]);
+    int step = std::stoi(for_tokens[2]);
+    for (int i = start; i < end; i += step) {
+        std::vector<std::string> sub_tokens;
+        for (int j = 1; j < tokens.size() - 1; j++) {
+            sub_tokens.push_back(tokens[j]);
+        }
+        parse(sub_tokens);
+    }
+    return 0;
 }
 
 int script::if_statement(std::vector<std::string> tokens) {

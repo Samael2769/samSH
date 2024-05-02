@@ -3,8 +3,6 @@ i=2
 a=2
 b=4
 v="test"
-if (a == 2)
-    if (b == 4)
-        i=1
-    end
+for (1 ; 2 ; 1)
+    i=4
 end
