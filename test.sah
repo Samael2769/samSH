@@ -1,8 +1,9 @@
 #!/samsh
-i=2
-a=2
+i=0
+a=10
 b=4
-v="test"
-for (1 ; 2 ; 1)
-    i=4
+v="test"+"hello"
+for (i;i==9;i=i+1)
+    a=a+1
+    echo "test"
 end

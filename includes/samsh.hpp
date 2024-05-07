@@ -16,7 +16,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <cstring>
-#include "utils.hpp"
 #include <sstream>
 #include <map>
 #include <functional>
@@ -24,7 +23,6 @@
 #include <fcntl.h>
 
 #include "prompt.hpp"
-#include "script.hpp"
 
 class samsh {
     public:
@@ -58,10 +56,8 @@ class samsh {
         std::vector<std::string> _path;
         std::vector<std::string> _lastargs;
         std::map<std::string, std::function<int(std::vector<std::string>)>> _builtins;
-        script _script;
         int _status;
         int STDIN;
         int STDOUT;
 };
-
 #endif /* !SAMSH_HPP_ */

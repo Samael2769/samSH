@@ -6,6 +6,7 @@
 */
 
 #include "samsh.hpp"
+#include "script.hpp"
 
 samsh::samsh() {
     setEnv();
@@ -507,6 +508,7 @@ int samsh::scriptHandling() {
         return -1;
     }
     
+    script _script;
     _script.setScript(file_ctn);
     _script.run();
     

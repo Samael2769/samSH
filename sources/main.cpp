@@ -6,11 +6,12 @@
 */
 
 #include <iostream>
-#include "samsh.hpp"
+#include "macro.hpp"
+
+samsh* sh;
 
 int main()
 {
-    samsh sh;
-
-    return sh.run();
+    sh = new samsh();
+    return sh->run();
 }

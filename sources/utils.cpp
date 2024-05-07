@@ -1,5 +1,5 @@
 #include "utils.hpp"
-
+#include <iostream>
 
 char** vectorToCharPointerArray(const std::vector<std::string>& vec) {
     // Allocate memory for the array of char pointers
@@ -78,6 +78,40 @@ std::string trim(const std::string& str) {
     }
     while (!new_str.empty() && std::isspace(new_str.back())) {
         new_str.pop_back();
+    }
+    return new_str;
+}
+
+std::vector<std::string> splitString(const std::string& str, std::string delimiters, bool keepDelimiters) {
+    //if any of the delimiters is found, the string is split
+    std::vector<std::string> tokens;
+    size_t start = 0, end = 0;
+    while ((end = str.find_first_of(delimiters, start)) != std::string::npos) {
+        if (end != start) {
+            tokens.push_back(str.substr(start, end - start));
+        }
+        if (keepDelimiters) {
+            tokens.push_back(str.substr(end, 1));
+        }
+        start = end + 1;
+    }
+    if (start < str.size()) {
+        tokens.push_back(str.substr(start));
+    }
+    for (int i = 0; i < tokens.size(); i++) {
+        tokens[i] = trim(tokens[i]);
+    }
+    return tokens;
+}
+
+std::string removeChars(const std::string& str, const std::string& chars) {
+    std::string new_str = str;
+    for (int i = 0; i < chars.size(); i++) {
+        for (int j = 0; j < new_str.size(); j++) {
+            if (new_str[j] == chars[i]) {
+                new_str.erase(new_str.begin() + j);
+            }
+        }
     }
     return new_str;
 }
