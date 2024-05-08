@@ -5,5 +5,5 @@ b=4
 v="test"+"hello"
 for (i;i==9;i=i+1)
     a=a+1
-    echo "test"
+    echo v
 end

@@ -55,7 +55,16 @@ int script::parse(std::vector<std::string> parsed_script) {
         if (parsed_script[i].find("end") != std::string::npos) {
             continue;
         }
-        sh->parse(parsed_script[i]);
+        std::vector<std::string> toks = splitString(parsed_script[i], " ");
+        std::string cmd = toks[0];
+        for (int j = 1; j < toks.size(); j++) {
+            std::string var = getVariableValue(toks[j]);
+            if (var == "") {
+                var = toks[j];
+            }
+            cmd += " " + var;
+        }
+        sh->parse(cmd);
     }
     return 0;
 }
