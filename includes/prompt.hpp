@@ -20,6 +20,7 @@ class prompt {
         std::string getTime();
         std::string getMinimalCwd();
         std::string getStatus();
+        std::string unescapeString(const std::string str);
         void createPrompt(std::string prompt_cmd);
         void setStatus(int status) { this->status = status; }
     protected:

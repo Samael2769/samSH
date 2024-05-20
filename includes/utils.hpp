@@ -15,3 +15,4 @@ std::vector<std::string> splitString(const std::string& str, const std::string d
 std::string joinString(const std::vector<std::string>& tokens, char delimiter, int start, int end);
 std::string trim(const std::string& str);
 std::string removeChars(const std::string& str, const std::string& chars);
+std::string readFile(const std::string& filename);

@@ -49,13 +49,18 @@ class samsh {
         int handleRedirection(std::vector<std::string> args);
         int choseRedirection();
         int handlePipes();
-        int scriptHandling();
+        int scriptHandling(std::string filename);
+        std::string checkAlias(std::string cmd);
     protected:
     private:
         std::vector<std::string> _env;
         std::vector<std::string> _path;
         std::vector<std::string> _lastargs;
         std::map<std::string, std::function<int(std::vector<std::string>)>> _builtins;
+        std::string convFile;
+        std::vector<std::string> confFileParsed;
+        std::map<std::string, std::string> _macros;
+        std::string _prompt;
         int _status;
         int STDIN;
         int STDOUT;

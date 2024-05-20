@@ -20,6 +20,23 @@ samsh::samsh() {
     _status = 0;
     STDIN = dup(STDIN_FILENO);
     STDOUT = dup(STDOUT_FILENO);
+    setPath();
+    convFile = ".samsh";
+    confFileParsed = splitString(readFile(convFile), '\n');
+    for (int i = 0; i < confFileParsed.size(); i++) {
+        if (confFileParsed[i].empty()) {
+            continue;
+        }
+        std::vector<std::string> tokens = splitString(confFileParsed[i], '=');
+        if (tokens.size() == 2) {
+            if (tokens[0] == "S1")
+                _prompt = removeChars(tokens[1], "\"");
+            _macros[tokens[0]] = tokens[1];
+        }
+        if (tokens.size() == 1) {
+            parse(confFileParsed[i]);
+        }
+    }
 }
 
 samsh::~samsh() {
@@ -39,7 +56,7 @@ int samsh::run() {
         input.clear();
         prompt p(_env);
         p.setStatus(_status);
-        p.createPrompt("\e[0;36m[\\t]\e[0;m \e[0;32m\\u@\\h\e[0;m:\e[1;35m\\W\e[0;m->\e[1;32m\\$\e[0;m\n-> ");
+        p.createPrompt(_prompt);
         std::getline(std::cin, input);
         if (input == "exit") {
             break;
@@ -73,7 +90,8 @@ int samsh::parse(std::string input) {
 
     for (const auto& token : tokens) {
         _lastargs.clear();
-        _lastargs = splitString(token, ' '); // Split input string by space delimiter
+        std::string newTok = checkAlias(token);
+        _lastargs = splitString(newTok, ' '); // Split input string by space delimiter
         if (_lastargs.empty()) {
             continue;
         }
@@ -96,7 +114,7 @@ int samsh::exec(const std::string& cmd) {
     int status;
     std::string path;
 
-    if (scriptHandling() == 0) {
+    if (scriptHandling(cmd) == 0) {
         return 0;
     }
     if (isBuiltin(cmd, _lastargs)) {
@@ -481,8 +499,8 @@ int samsh::handlePipes() {
     return 0;
 }
 
-int samsh::scriptHandling() {
-    std::string filepath = _lastargs[0];
+int samsh::scriptHandling(std::string _filepath) {
+    std::string filepath = _filepath;
     std::ifstream file(filepath);
     
     if (!file.is_open()) {
@@ -513,4 +531,11 @@ int samsh::scriptHandling() {
     _script.run();
     
     return 0;
+}
+
+std::string samsh::checkAlias(std::string cmd) {
+    if (_macros.find(cmd) != _macros.end()) {
+        return _macros[cmd];
+    }
+    return cmd;
 }

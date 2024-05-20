@@ -51,6 +51,9 @@ bool isBinaryFile(const std::string& filename) {
 
 // Split a string by a delimiter and return a vector of tokens
 std::vector<std::string> splitString(const std::string& str, char delimiter) {
+    if (str.empty()) {
+        return {};
+    }
     std::vector<std::string> tokens;
     std::istringstream iss(str);
     std::string token;
@@ -83,6 +86,9 @@ std::string trim(const std::string& str) {
 }
 
 std::vector<std::string> splitString(const std::string& str, std::string delimiters, bool keepDelimiters) {
+    if (str.empty()) {
+        return {};
+    }
     //if any of the delimiters is found, the string is split
     std::vector<std::string> tokens;
     size_t start = 0, end = 0;
@@ -114,4 +120,14 @@ std::string removeChars(const std::string& str, const std::string& chars) {
         }
     }
     return new_str;
+}
+
+std::string readFile(const std::string& filename) {
+    std::ifstream
+    file(filename);
+    if (!file) {
+        return "";
+    }
+    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    return content;
 }

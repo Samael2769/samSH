@@ -70,9 +70,29 @@ std::string prompt::getStatus()
     return std::to_string(status);
 }
 
+std::string prompt::unescapeString(const std::string str) {
+    std::string result;
+    result.reserve(str.size());
+
+    for (size_t i = 0; i < str.size(); ++i) {
+        if (str[i] == '\\' && i + 1 < str.size()) {
+            switch (str[i + 1]) {
+                case 't': result += '\t'; ++i; break;
+                case 'n': result += '\n'; ++i; break;
+                case 'e': result += '\033'; ++i; break; // Handle \e for escape sequences
+                case '\\': result += '\\'; ++i; break;
+                default: result += str[i]; break;
+            }
+        } else {
+            result += str[i];
+        }
+    }
+    return result;
+}
+
 void prompt::createPrompt(std::string prompt_cmd)
 {
-    prompt_str = prompt_cmd;
+    prompt_str = unescapeString(prompt_cmd);
     for (int i = 0; i < prompt_str.size(); i++) {
         if (prompt_str[i] == '\\') {
             std::string alias = prompt_str.substr(i, 2);
